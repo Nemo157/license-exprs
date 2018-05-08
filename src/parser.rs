@@ -1,4 +1,4 @@
-use nom;
+use nom::{self, ErrorKind};
 use expr;
 
 fn valid_id_char(i: char) -> bool {
@@ -16,7 +16,7 @@ named! {
     license_id<&str, expr::Simple>,
     do_parse!(
         id: id >>
-        or_later: opt!(char!('+')) >>
+        or_later: opt!(complete!(char!('+'))) >>
         (expr::Simple::LicenseId {
             id,
             or_later: or_later.is_some()
@@ -53,7 +53,7 @@ named! {
 named! {
     and<&str, expr::Compound>,
     ws!(do_parse!(
-        left: compound >>
+        left: nand_compound >>
         tag!("AND") >>
         right: compound >>
         (expr::Compound::And { left: Box::new(left), right: Box::new(right) })))
@@ -62,16 +62,35 @@ named! {
 named! {
     or<&str, expr::Compound>,
     ws!(do_parse!(
-        left: compound >>
+        left: nor_compound >>
         tag!("OR") >>
         right: compound >>
         (expr::Compound::Or { left: Box::new(left), right: Box::new(right) })))
 }
 
 named! {
-    compound<&str, expr::Compound>,
-    alt!(
-        with | and | or
-        | map!(simple, |license| expr::Compound::Simple { license })
-        | delimited!(tag!("("), compound, tag!(")")))
+    pub nand_compound<&str, expr::Compound>,
+    alt_complete!(
+        with
+        | delimited!(tag!("("), compound, tag!(")"))
+        | complete!(map!(simple, |license| expr::Compound::Simple { license })))
+}
+
+named! {
+    pub nor_compound<&str, expr::Compound>,
+    alt_complete!(
+        and
+        | with
+        | delimited!(tag!("("), compound, tag!(")"))
+        | complete!(map!(simple, |license| expr::Compound::Simple { license })))
+}
+
+named! {
+    pub compound<&str, expr::Compound>,
+    alt_complete!(
+        or
+        | and
+        | with
+        | delimited!(tag!("("), compound, tag!(")"))
+        | map!(simple, |license| expr::Compound::Simple { license }))
 }

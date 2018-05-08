@@ -3,6 +3,9 @@ extern crate nom;
 
 use std::error::Error;
 use std::fmt;
+
+use nom::IResult;
+
 mod spdx;
 mod expr;
 mod parser;
@@ -54,28 +57,15 @@ impl<'a> Error for ParseError<'a> {
 }
 
 pub fn validate_license_expr(license_expr: &str) -> Result<(), ParseError> {
-    license_expr.split_whitespace().map(|word| match word {
-        "AND"   => Ok(And),
-        "OR"    => Ok(Or),
-        "WITH"  => Ok(With),
-        _ if spdx::LICENSES.binary_search(&word.trim_right_matches('+')).is_ok()
-                => Ok(License(word)),
-        _ if spdx::EXCEPTIONS.binary_search(&word).is_ok()
-                => Ok(Exception(word)),
-        _       => Err(ParseError::UnknownLicenseId(word))
-    }).fold(Ok(Or), |prev, word| match (prev, word) {
-        (err @ Err(_), _) | (_, err @ Err(_)) => err,
-        (Ok(License(_)), Ok(With))
-            | (Ok(License(_)), Ok(And))
-            | (Ok(License(_)), Ok(Or))
-            | (Ok(Exception(_)), Ok(And))
-            | (Ok(Exception(_)), Ok(Or))
-            | (Ok(And), Ok(License(_)))
-            | (Ok(Or), Ok(License(_)))
-            | (Ok(With), Ok(Exception(_)))
-            => word,
-        _ => Err(ParseError::InvalidStructure(word.unwrap()))
-    }).and(Ok(()))
+    let parsed = parser::compound(license_expr);
+    println!("{:#?}", parsed);
+    match parsed {
+        IResult::Done(ref rest, _) if !rest.is_empty() => Err(ParseError::InvalidStructure(LicenseExpr::And)),
+        IResult::Done(_, ref expr) if expr.is_valid() => Ok(()),
+        IResult::Done(_, _) => Err(ParseError::UnknownLicenseId("")),
+        IResult::Error(_) => Err(ParseError::InvalidStructure(LicenseExpr::And)),
+        IResult::Incomplete(_) => Err(ParseError::InvalidStructure(LicenseExpr::And)),
+    }
 }
 
 pub fn license_version() -> &'static str {
