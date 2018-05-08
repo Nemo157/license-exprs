@@ -87,10 +87,10 @@ named! {
 
 named! {
     pub compound<&str, expr::Compound>,
-    alt_complete!(
+    ws!(alt_complete!(
         or
         | and
         | with
         | delimited!(tag!("("), compound, tag!(")"))
-        | map!(simple, |license| expr::Compound::Simple { license }))
+        | map!(simple, |license| expr::Compound::Simple { license })))
 }
