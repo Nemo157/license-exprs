@@ -8,3 +8,6 @@ repository = "https://github.com/withoutboats/license-exprs"
 
 [workspace]
 members = [".", "fetch-license-list-from-spdx"]
+
+[dependencies]
+nom = "3.2.1"

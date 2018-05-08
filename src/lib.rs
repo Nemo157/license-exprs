@@ -1,7 +1,11 @@
+#[macro_use]
+extern crate nom;
+
 use std::error::Error;
 use std::fmt;
 mod spdx;
 mod expr;
+mod parser;
 
 use self::LicenseExpr::*;
 

@@ -24,7 +24,7 @@ pub enum Compound<'a> {
         license: Simple<'a>,
     },
 
-    WithException {
+    With {
         license: Simple<'a>,
         exception: Id<'a>,
     },
@@ -41,7 +41,11 @@ pub enum Compound<'a> {
 }
 
 impl<'a> Id<'a> {
-    pub fn into_static(self) -> Id<'static> {
+    pub(crate) fn new(id: &'a str) -> Id<'a> {
+        Id(Cow::Borrowed(id))
+    }
+
+    pub fn into_owned(self) -> Id<'static> {
         Id(self.0.into_owned().into())
     }
 }
@@ -60,12 +64,12 @@ impl<'a> Simple<'a> {
         }
     }
 
-    pub fn into_static(self) -> Simple<'static> {
+    pub fn into_owned(self) -> Simple<'static> {
         match self {
             Simple::LicenseId { id, or_later } =>
-                Simple::LicenseId { id: id.into_static(), or_later },
+                Simple::LicenseId { id: id.into_owned(), or_later },
             Simple::LicenseRef { id, document } =>
-                Simple::LicenseRef { id: id.into_static(), document: document.map(|d| d.into_static()) },
+                Simple::LicenseRef { id: id.into_owned(), document: document.map(|d| d.into_owned()) },
         }
     }
 }
@@ -74,7 +78,7 @@ impl<'a> Compound<'a> {
     pub fn is_valid(&self) -> bool {
         match *self {
             Compound::Simple { ref license }
-            | Compound::WithException { ref license, .. } =>
+            | Compound::With { ref license, .. } =>
                 license.is_valid(),
             Compound::And { ref left, ref right }
             | Compound::Or { ref left, ref right } =>
@@ -82,16 +86,16 @@ impl<'a> Compound<'a> {
         }
     }
 
-    pub fn into_static(self) -> Compound<'static> {
+    pub fn into_owned(self) -> Compound<'static> {
         match self {
             Compound::Simple { license } =>
-                Compound::Simple { license: license.into_static() },
-            Compound::WithException { license, exception } =>
-                Compound::WithException { license: license.into_static(), exception: exception.into_static() },
+                Compound::Simple { license: license.into_owned() },
+            Compound::With { license, exception } =>
+                Compound::With { license: license.into_owned(), exception: exception.into_owned() },
             Compound::And { left, right } =>
-                Compound::And { left: Box::new(left.into_static()), right: Box::new(right.into_static()) },
+                Compound::And { left: Box::new(left.into_owned()), right: Box::new(right.into_owned()) },
             Compound::Or { left, right } =>
-                Compound::Or { left: Box::new(left.into_static()), right: Box::new(right.into_static()) },
+                Compound::Or { left: Box::new(left.into_owned()), right: Box::new(right.into_owned()) },
         }
     }
 }
