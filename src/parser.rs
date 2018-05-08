@@ -8,7 +8,7 @@ fn valid_id_char(i: char) -> bool {
 named! {
     id<&str, expr::Id>,
     do_parse!(
-        id: take_while!(valid_id_char) >>
+        id: take_while1!(valid_id_char) >>
         (expr::Id::new(id)))
 }
 
