@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 mod spdx;
+mod expr;
 
 use self::LicenseExpr::*;
 
